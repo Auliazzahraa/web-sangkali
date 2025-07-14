@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logopkm.png";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+// import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../services/firebase"; // pastikan path benar sesuai project kamu
+import { db } from "../services/firebase"; // ✅ ini HARUS ADA!
+import { doc, setDoc } from "firebase/firestore";
 // note :
 // - belum bikin pesan error kalo gmailnya udah dipake
 // web-pkm-6c1e1.firebaseapp.com (domain sebelumnya)
@@ -14,7 +16,8 @@ export default function SignUp() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState("");
-
+  const [gender, setGender] = useState("");
+  const [tanggalLahir, setTanggalLahir] = useState("");
 
   // cek inputan full name -> gaboleh kosong
   const [fullName, setFullName] = useState("");
@@ -83,32 +86,32 @@ export default function SignUp() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // validasi input kamu seperti biasa
     if (password !== confirmPassword) {
       setErrorMsg("Password dan konfirmasi tidak sama.");
       return;
     }
-    if (fullName.trim() === "") {
-      setFullNameError("Nama tidak boleh kosong");
-      return;
-    }
-
-    if (password.length < 6 || password.length > 10) {
-      setPasswordError("Password harus 6–10 karakter");
-      return;
-    }
-    if (confirmPassword !== password) {
-      setConfirmPasswordError("Konfirmasi password tidak sama");
-      return;
-    } 
-
 
     try {
+      // Buat akun
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
+      // Update profil auth
       await updateProfile(userCredential.user, {
         displayName: fullName,
       });
 
+      // 🔥 Tambahkan data ke Firestore
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        displayName: fullName,
+        gender: gender,
+        birthdate: tanggalLahir,
+        role: "pegawai", // default
+        email: email,
+        createdAt: new Date().toISOString(),
+      });
+
+      // Arahkan ke halaman home
       navigate("/home");
     } catch (error) {
       console.error("Signup error:", error.message);
@@ -116,18 +119,18 @@ export default function SignUp() {
     }
   };
 
-  // fungsi buat sign up with google
-  const handleGoogleSignUp = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      navigate("/home");
-    } catch (error) {
-      console.error("Google Sign-Up error:", error.message);
-      alert("Gagal login dengan Google: " + error.message);
-    }
-  };
 
+  // // fungsi buat sign up with google
+  // const handleGoogleSignUp = async () => {
+  //   const provider = new GoogleAuthProvider();
+  //   try {
+  //     await signInWithPopup(auth, provider);
+  //     navigate("/home");
+  //   } catch (error) {
+  //     console.error("Google Sign-Up error:", error.message);
+  //     alert("Gagal login dengan Google: " + error.message);
+  //   }
+  // };
 
   return (
     <div
@@ -151,24 +154,20 @@ export default function SignUp() {
         <form onSubmit={handleSubmit}>
           {/* full name */}
           <div className="mb-4">
-            <label className="block mb-1 text-sm font-medium text-gray-700">Full Name</label>
+            <label className="block mb-1 text-sm font-medium text-gray-700">Nama Lengkap</label>
             <input
               type="text"
               placeholder="Masukkan Nama Lengkapmu"
               value={fullName}
               onChange={handleFullNameChange}
-              className={`w-full border ${
-                fullNameError ? "border-red-500" : "border-gray-300"
-              } rounded-md px-3 py-2 text-sm focus:outline-none ${
-                fullNameError ? "focus:ring-red-500" : "focus:ring-green-500"
-              }`}
+              className={`w-full border ${fullNameError ? "border-red-500" : "border-gray-300"} rounded-md px-3 py-2 text-sm focus:outline-none ${fullNameError ? "focus:ring-red-500" : "focus:ring-green-500"}`}
               required
             />
             {fullNameError && (
               <p className="text-sm text-red-600 mt-1">{fullNameError}</p>
             )}
           </div>
-          {/* email */}
+
           <div className="mb-4">
             <label className="block mb-1 text-sm font-medium text-gray-700">Email</label>
             <input
@@ -176,17 +175,39 @@ export default function SignUp() {
               placeholder="Masukkan Emailmu"
               value={email}
               onChange={handleEmailChange}
-              className={`w-full border ${
-                emailError ? "border-red-500" : "border-gray-300"
-              } rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
-                emailError ? "focus:ring-red-500" : "focus:ring-green-500"
-              }`}
+              className={`w-full border ${emailError ? "border-red-500" : "border-gray-300"} rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${emailError ? "focus:ring-red-500" : "focus:ring-green-500"}`}
               required
             />
             {emailError && (
               <p className="text-sm text-red-600 mt-1">{emailError}</p>
             )}
           </div>
+
+          <div className="mb-4">
+            <label className="block mb-1 text-sm font-medium text-gray-700">Gender</label>
+            <select
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              required
+            >
+              <option value="">Pilih jenis kelamin</option>
+              <option value="laki-laki">Laki-laki</option>
+              <option value="perempuan">Perempuan</option>
+            </select>
+          </div>
+
+          <div className="mb-4">
+            <label className="block mb-1 text-sm font-medium text-gray-700">Tanggal Lahir</label>
+            <input
+              type="date"
+              value={tanggalLahir}
+              onChange={(e) => setTanggalLahir(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              required
+            />
+          </div>
+
           {/* password */}
           <div className="mb-4 relative">
             <label className="block mb-1 text-sm font-medium text-gray-700">Password</label>
@@ -252,7 +273,7 @@ export default function SignUp() {
             Sign Up
           </button>
 
-          <button
+          {/* <button
             type="button"
             onClick={handleGoogleSignUp}
             className="mt-3 w-full border border-gray-300 flex justify-center items-center py-2 rounded-full hover:bg-gray-50 transition"
@@ -263,7 +284,7 @@ export default function SignUp() {
               className="w-5 h-5 mr-2"
             />
             Sign Up with Google
-          </button>
+          </button> */}
 
 
           <p className="mt-6 text-sm text-center text-gray-600">

@@ -4,6 +4,8 @@ import logo from "../assets/logopkm.png";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../services/firebase"; // pastikan path ke firebase.js sesuai
+import { getDoc, doc } from "firebase/firestore";
+import { db } from "../services/firebase";
 
 
 export default function Login() {
@@ -31,18 +33,6 @@ export default function Login() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMsg("");
-
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/home");
-    } catch (error) {
-      console.error("Login error:", error.message);
-      setErrorMsg("Email atau password salah.");
-    }
-  };
 
   // sign in pake google
   const handleGoogleSignIn = async () => {
@@ -57,6 +47,37 @@ export default function Login() {
   };
 
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const uid = userCredential.user.uid;
+
+      // Ambil data user dari Firestore
+      const userDocRef = doc(db, "users", uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        const role = data.role;
+
+        // 🔀 Redirect berdasarkan role
+        if (role === "admin") {
+          navigate("/dashboard");
+        } else {
+          navigate("/home");
+        }
+      } else {
+        setErrorMsg("Data pengguna tidak ditemukan di Firestore.");
+      }
+
+    } catch (error) {
+      console.error("Login error:", error.message);
+      setErrorMsg("Email atau password salah.");
+    }
+  };
 
   return (
     <div
