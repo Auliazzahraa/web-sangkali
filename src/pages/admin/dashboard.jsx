@@ -7,6 +7,8 @@ import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 import ExcelUpload from "./excelUpload";
 import { Link } from "react-router-dom";
+import {onAuthStateChanged } from "firebase/auth";
+import GoogleDriveLogin from "../../drivers/GoogleDriveLogin"; // sesuaikan path
 
 
 export default function Dashboard() {
@@ -17,32 +19,35 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const auth = getAuth();
-    const user = auth.currentUser;
+  const auth = getAuth();
 
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
     if (user) {
       setUserName(user.displayName || "User");
 
-      // Ambil data role dari Firestore
-      const fetchRole = async () => {
+      try {
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const userData = docSnap.data();
           setRole(userData.role || "pegawai");
 
-          // Proteksi hanya admin
+          // ⛔️ Proteksi: jika bukan admin, tendang ke /home
           if (userData.role !== "admin") {
             navigate("/home");
           }
         }
-      };
-
-      fetchRole();
+      } catch (err) {
+        console.error("❌ Gagal mengambil data role:", err);
+      }
     } else {
       navigate("/login");
     }
-  }, [navigate]);
+  });
+
+  // Cleanup
+  return () => unsubscribe();
+}, [navigate]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -87,6 +92,12 @@ export default function Dashboard() {
             >
             Jadwal
             </Link>
+            <Link
+              to="/admin-lihat-bukti"
+              className="block text-gray-700 hover:bg-gray-100 py-2 px-4 rounded"
+            >
+              Lihat Bukti Kegiatan
+            </Link>
         </nav>
 
         <div className="mt-10 text-gray-400 text-xs uppercase">Others</div>
@@ -121,6 +132,10 @@ export default function Dashboard() {
         <div className="p-10">
             <h1 className="text-xl font-bold mb-4">Upload Jadwal Excel</h1>
             <ExcelUpload />
+        </div>
+
+        <div className="mb-4">
+          <GoogleDriveLogin />
         </div>
       </main>
     </div>

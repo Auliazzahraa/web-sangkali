@@ -7,6 +7,8 @@ import ForgotPassword from "./pages/forgotPassword";
 import EditProfile from "./pages/editprofile";
 import Dashboard from "./pages/admin/dashboard";
 import Jadwal from "./pages/admin/jadwal";
+import BuktiKegiatan from "./pages/pegawai/buktiKegiatan";
+import LihatBuktiKeg from "./pages/admin/lihatBuktiKeg";
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <Route path="/edit-profile" element={<EditProfile/>} />
         <Route path="/dashboard" element={<Dashboard/>} />
         <Route path="/jadwal" element={<Jadwal/>} />
+        <Route path="/bukti-kegiatan" element={<BuktiKegiatan/>} />
+        <Route path="/admin-lihat-bukti" element={<LihatBuktiKeg/>} />
       </Routes>
     </Router>
   );
