@@ -151,21 +151,6 @@ export default function Login() {
           >
             Sign in
           </button>
-
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            className="mt-3 w-full border border-gray-300 flex justify-center items-center py-2 rounded-full hover:bg-gray-50 transition"
-          >
-            <img
-              src="https://www.svgrepo.com/show/475656/google-color.svg"
-              alt="Google"
-              className="w-5 h-5 mr-2"
-            />
-            Sign In with Google
-          </button>
-
-
           <p className="mt-6 text-sm text-center text-gray-600">
             Belum memiliki akun?{" "}
             <span
