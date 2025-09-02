@@ -57,3 +57,5 @@ serviceAccountKey.json
 *.key.json
 *.json
 !package.json
+sikegiatan-*.json
+**/*serviceAccount*.json
